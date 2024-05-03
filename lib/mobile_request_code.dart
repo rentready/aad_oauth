@@ -1,19 +1,18 @@
 import 'dart:async';
 
+import 'package:aad_oauth/model/config.dart';
+import 'package:aad_oauth/request/authorization_request.dart';
 import 'package:flutter/material.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 
-import 'model/config.dart';
-import 'request/authorization_request.dart';
-
-class RequestCode {
+class MobileRequestCode {
   final Config _config;
   final AuthorizationRequest _authorizationRequest;
   final String _redirectUriHost;
   late NavigationDelegate _navigationDelegate;
   String? _code;
 
-  RequestCode(Config config)
+  MobileRequestCode(Config config)
       : _config = config,
         _authorizationRequest = AuthorizationRequest(config),
         _redirectUriHost = Uri.parse(config.redirectUri).host {
@@ -80,8 +79,7 @@ class RequestCode {
     return _code;
   }
 
-  Future<NavigationDecision> _onNavigationRequest(
-      NavigationRequest request) async {
+  Future<NavigationDecision> _onNavigationRequest(NavigationRequest request) async {
     try {
       var uri = Uri.parse(request.url);
 
@@ -103,18 +101,14 @@ class RequestCode {
     await WebViewCookieManager().clearCookies();
   }
 
-  String _constructUrlParams() => _mapToQueryParams(
-      _authorizationRequest.parameters, _config.customParameters);
+  String _constructUrlParams() => _mapToQueryParams(_authorizationRequest.parameters, _config.customParameters);
 
-  String _mapToQueryParams(
-      Map<String, String> params, Map<String, String> customParams) {
+  String _mapToQueryParams(Map<String, String> params, Map<String, String> customParams) {
     final queryParams = <String>[];
 
-    params.forEach((String key, String value) =>
-        queryParams.add('$key=${Uri.encodeQueryComponent(value)}'));
+    params.forEach((String key, String value) => queryParams.add('$key=${Uri.encodeQueryComponent(value)}'));
 
-    customParams.forEach((String key, String value) =>
-        queryParams.add('$key=${Uri.encodeQueryComponent(value)}'));
+    customParams.forEach((String key, String value) => queryParams.add('$key=${Uri.encodeQueryComponent(value)}'));
     return queryParams.join('&');
   }
 }
