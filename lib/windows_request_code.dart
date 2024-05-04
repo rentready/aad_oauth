@@ -13,12 +13,15 @@ class WindowsRequestCode {
   final AuthorizationRequest _authorizationRequest;
   final String _redirectUriHost;
   String? _code;
+  final WebviewController _controller;
+  bool _isInitialized = false;
   StreamSubscription? _$onUrlChange;
 
   WindowsRequestCode(Config config)
       : _config = config,
         _authorizationRequest = AuthorizationRequest(config),
-        _redirectUriHost = Uri.parse(config.redirectUri).host;
+        _redirectUriHost = Uri.parse(config.redirectUri).host,
+        _controller = WebviewController();
 
   String _constructUrlParams() => _mapToQueryParams(_authorizationRequest.parameters, _config.customParameters);
 
@@ -50,8 +53,19 @@ class WindowsRequestCode {
     }
   }
 
+  Future<void> initialize() async {
+    if (!_isInitialized) await _controller.initialize();
+    _isInitialized = true;
+  }
+
   void dispose() {
     _$onUrlChange?.cancel();
+    _controller.dispose();
+  }
+
+  Future<void> clearCookies() async {
+    await initialize();
+    await _controller.clearCookies();
   }
 
   Future<String?> requestCode() async {
@@ -60,13 +74,12 @@ class WindowsRequestCode {
     final urlParams = _constructUrlParams();
     final launchUrl = '${_authorizationRequest.url}?$urlParams';
 
-    final controller = WebviewController();
-    await controller.initialize();
-    await controller.setBackgroundColor(Colors.transparent);
-    await controller.setPopupWindowPolicy(WebviewPopupWindowPolicy.deny);
-    await controller.loadUrl(launchUrl);
+    await initialize();
+    await _controller.setBackgroundColor(Colors.transparent);
+    await _controller.setPopupWindowPolicy(WebviewPopupWindowPolicy.deny);
+    await _controller.loadUrl(launchUrl);
 
-    _$onUrlChange ??= controller.url.listen(_onUrlChangeListener);
+    _$onUrlChange ??= _controller.url.listen(_onUrlChangeListener);
 
     if (_config.navigatorKey.currentState == null) {
       throw Exception(
@@ -80,7 +93,7 @@ class WindowsRequestCode {
     await _config.navigatorKey.currentState!.push(
       MaterialPageRoute(
         builder: (context) {
-          final webView = Webview(controller);
+          final webView = Webview(_controller);
 
           return Scaffold(
             appBar: _config.appBar,
@@ -103,9 +116,5 @@ class WindowsRequestCode {
       ),
     );
     return _code;
-  }
-
-  Future<void> clearCookies() async {
-    // await WebViewCookieManager().clearCookies();
   }
 }
