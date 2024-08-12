@@ -20,11 +20,16 @@ class CoreOAuth {
 
   Future<bool> get hasCachedAccountInformation async => false;
 
+  Future<bool> get hasRefreshToken async => false;
+
   Future<String?> getAccessToken() async =>
       throw UnsupportedFailure(errorType: ErrorType.unsupported, message: 'Unsupported getAccessToken');
 
   Future<String?> getIdToken() async =>
       throw UnsupportedFailure(errorType: ErrorType.unsupported, message: 'Unsupported getAccessToken');
+
+  Future<String?> getRefreshToken() async =>
+      throw UnsupportedFailure(errorType: ErrorType.unsupported, message: 'Unsupported getRefreshToken');
 
   factory CoreOAuth.fromConfig(Config config) => config.isStub ? MockCoreOAuth() : getOAuthConfig(config);
 }
