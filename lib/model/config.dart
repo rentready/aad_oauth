@@ -167,6 +167,9 @@ class Config {
   /// add onPageFinished callback
   Function(String url)? onPageFinished;
 
+  /// Callback for javascript messages
+  Function(String message)? onJavascriptMessage;
+
   /// Determine an appropriate redirect URI for AAD authentication.
   /// On web, it is the location that the application is being served from.
   /// On mobile, it is https://login.live.com/oauth20_desktop.srf
@@ -222,6 +225,7 @@ class Config {
     this.postLogoutRedirectUri,
     this.appBar,
     this.onPageFinished,
+    this.onJavascriptMessage,
   })  : authorizationUrl = customAuthorizationUrl ??
             (isB2C
                 ? (customDomainUrlWithTenantId == null

@@ -11,6 +11,7 @@ class MobileRequestCode {
   final String _redirectUriHost;
   late NavigationDelegate _navigationDelegate;
   String? _code;
+  late WebViewController _controller;
 
   MobileRequestCode(Config config)
       : _config = config,
@@ -26,22 +27,26 @@ class MobileRequestCode {
 
     final urlParams = _constructUrlParams();
     final launchUri = Uri.parse('${_authorizationRequest.url}?$urlParams');
-    final controller = WebViewController();
-    await controller.setNavigationDelegate(_navigationDelegate);
-    await controller.setJavaScriptMode(JavaScriptMode.unrestricted);
 
-    await controller.setBackgroundColor(Colors.transparent);
-    await controller.setUserAgent(_config.userAgent);
-    await controller.loadRequest(launchUri);
+    _controller = WebViewController();
+
+    await _controller.setNavigationDelegate(_navigationDelegate);
+    await _controller.setJavaScriptMode(JavaScriptMode.unrestricted);
+    await _controller.setBackgroundColor(Colors.transparent);
+    await _controller.setUserAgent(_config.userAgent);
+    await _controller.loadRequest(launchUri);
+    // initialize js channel
+    await _controller.addJavaScriptChannel('AadChannel', onMessageReceived: _onJavascriptMessageReceived);
+
     if (_config.onPageFinished != null) {
-      await controller.setNavigationDelegate(
+      await _controller.setNavigationDelegate(
         NavigationDelegate(
           onPageFinished: _config.onPageFinished,
         ),
       );
     }
 
-    final webView = WebViewWidget(controller: controller);
+    final webView = WebViewWidget(controller: _controller);
 
     if (_config.navigatorKey.currentState == null) {
       throw Exception(
@@ -60,8 +65,8 @@ class MobileRequestCode {
             canPop: false,
             onPopInvoked: (bool didPop) async {
               if (didPop) return;
-              if (await controller.canGoBack()) {
-                await controller.goBack();
+              if (await _controller.canGoBack()) {
+                await _controller.goBack();
                 return;
               }
               final NavigatorState navigator = Navigator.of(context);
@@ -77,6 +82,10 @@ class MobileRequestCode {
       ),
     );
     return _code;
+  }
+
+  Future<void> clearCookies() async {
+    await WebViewCookieManager().clearCookies();
   }
 
   Future<NavigationDecision> _onNavigationRequest(NavigationRequest request) async {
@@ -97,10 +106,6 @@ class MobileRequestCode {
     return NavigationDecision.navigate;
   }
 
-  Future<void> clearCookies() async {
-    await WebViewCookieManager().clearCookies();
-  }
-
   String _constructUrlParams() => _mapToQueryParams(_authorizationRequest.parameters, _config.customParameters);
 
   String _mapToQueryParams(Map<String, String> params, Map<String, String> customParams) {
@@ -110,5 +115,11 @@ class MobileRequestCode {
 
     customParams.forEach((String key, String value) => queryParams.add('$key=${Uri.encodeQueryComponent(value)}'));
     return queryParams.join('&');
+  }
+
+  void _onJavascriptMessageReceived(JavaScriptMessage jsMessage) {
+    if (_config.onJavascriptMessage != null) {
+      _config.onJavascriptMessage!(jsMessage.message);
+    }
   }
 }
