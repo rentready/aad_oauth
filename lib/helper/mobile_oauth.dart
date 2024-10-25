@@ -1,19 +1,21 @@
 import 'dart:async';
 
+import 'package:aad_oauth/helper/auth_storage.dart';
 import 'package:aad_oauth/helper/core_oauth.dart';
+import 'package:aad_oauth/helper/other_oauth.dart';
+import 'package:aad_oauth/mobile_request_code.dart';
 import 'package:aad_oauth/model/config.dart';
 import 'package:aad_oauth/model/failure.dart';
 import 'package:aad_oauth/model/token.dart';
+import 'package:aad_oauth/request_token.dart';
 import 'package:dartz/dartz.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-import '../request_code.dart';
-import '../request_token.dart';
-import 'auth_storage.dart';
+OtherOAuth getOAuthConfig(Config config) => MobileOAuth(config);
 
-class MobileOAuth extends CoreOAuth {
+class MobileOAuth extends CoreOAuth implements OtherOAuth {
   final AuthStorage _authStorage;
-  final RequestCode _requestCode;
+  final MobileRequestCode _requestCode;
   final RequestToken _requestToken;
 
   Completer<String?>? _accessTokenCompleter;
@@ -25,7 +27,7 @@ class MobileOAuth extends CoreOAuth {
           tokenIdentifier: config.tokenIdentifier,
           aOptions: config.aOptions,
         ),
-        _requestCode = RequestCode(config),
+        _requestCode = MobileRequestCode(config),
         _requestToken = RequestToken(config);
 
   /// Perform Azure AD login.
@@ -36,8 +38,7 @@ class MobileOAuth extends CoreOAuth {
   /// will be returned, as long as we deem it still valid. In the event that
   /// both access and refresh tokens are invalid, the web gui will be used.
   @override
-  Future<Either<Failure, Token>> login(
-      {bool refreshIfAvailable = false}) async {
+  Future<Either<Failure, Token>> login({bool refreshIfAvailable = false}) async {
     await _removeOldTokenOnFirstLogin();
     return await _authorization(refreshIfAvailable: refreshIfAvailable);
   }
@@ -53,8 +54,7 @@ class MobileOAuth extends CoreOAuth {
     }
 
     if (token.hasRefreshToken()) {
-      final result =
-          await _requestToken.requestRefreshToken(token.refreshToken!);
+      final result = await _requestToken.requestRefreshToken(token.refreshToken!);
       //If refresh token request throws an exception, we have to do
       //a fullAuthFlow.
       result.fold(
@@ -97,8 +97,7 @@ class MobileOAuth extends CoreOAuth {
 
   /// Retrieve cached OAuth Id Token.
   @override
-  Future<String?> getIdToken() async =>
-      (await _authStorage.loadTokenFromCache()).idToken;
+  Future<String?> getIdToken() async => (await _authStorage.loadTokenFromCache()).idToken;
 
   /// Perform Azure AD logout.
   @override
@@ -108,8 +107,7 @@ class MobileOAuth extends CoreOAuth {
   }
 
   @override
-  Future<bool> get hasCachedAccountInformation async =>
-      (await _authStorage.loadTokenFromCache()).accessToken != null;
+  Future<bool> get hasCachedAccountInformation async => (await _authStorage.loadTokenFromCache()).accessToken != null;
 
   /// Authorize user via refresh token or web gui if necessary.
   ///
@@ -118,8 +116,7 @@ class MobileOAuth extends CoreOAuth {
   /// still be valid. If there's no refresh token the existing access token
   /// will be returned, as long as we deem it still valid. In the event that
   /// both access and refresh tokens are invalid, the web gui will be used.
-  Future<Either<Failure, Token>> _authorization(
-      {bool refreshIfAvailable = false}) async {
+  Future<Either<Failure, Token>> _authorization({bool refreshIfAvailable = false}) async {
     var token = await _authStorage.loadTokenFromCache();
 
     if (!refreshIfAvailable) {
@@ -129,8 +126,7 @@ class MobileOAuth extends CoreOAuth {
     }
 
     if (token.hasRefreshToken()) {
-      final result =
-          await _requestToken.requestRefreshToken(token.refreshToken!);
+      final result = await _requestToken.requestRefreshToken(token.refreshToken!);
       //If refresh token request throws an exception, we have to do
       //a fullAuthFlow.
       result.fold(
@@ -176,5 +172,3 @@ class MobileOAuth extends CoreOAuth {
     }
   }
 }
-
-CoreOAuth getOAuthConfig(Config config) => MobileOAuth(config);
