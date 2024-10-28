@@ -6,6 +6,7 @@ library msauth;
 import 'dart:async';
 import 'dart:convert';
 
+import 'package:aad_oauth/helper/aad_oauth_platform_type.dart';
 import 'package:aad_oauth/helper/core_oauth.dart';
 import 'package:aad_oauth/model/config.dart';
 import 'package:aad_oauth/model/failure.dart';
@@ -50,7 +51,8 @@ external void jsRefreshToken(
 
 class WebOAuth extends CoreOAuth {
   final Config config;
-  WebOAuth(this.config) {
+
+  WebOAuth(this.config, {AadOAuthPlatformType? platformType}) {
     jsInit(MsalConfig.construct(
         tenant: config.tenant,
         policy: config.policy,
@@ -91,23 +93,19 @@ class WebOAuth extends CoreOAuth {
   }
 
   @override
-  Future<bool> get hasCachedAccountInformation =>
-      Future<bool>.value(jsHasCachedAccountInformation());
+  Future<bool> get hasCachedAccountInformation => Future<bool>.value(jsHasCachedAccountInformation());
 
   @override
-  Future<Either<Failure, Token>> login(
-      {bool refreshIfAvailable = false}) async {
+  Future<Either<Failure, Token>> login({bool refreshIfAvailable = false}) async {
     final completer = Completer<Either<Failure, Token>>();
 
     jsLogin(
       refreshIfAvailable,
       config.webUseRedirect,
-      allowInterop(
-          (value) => completer.complete(Right(Token(accessToken: value)))),
+      allowInterop((value) => completer.complete(Right(Token(accessToken: value)))),
       allowInterop((error) => completer.complete(Left(AadOauthFailure(
             errorType: ErrorType.accessDeniedOrAuthenticationCanceled,
-            message:
-                'Access denied or authentication canceled. Error: ${error.toString()}',
+            message: 'Access denied or authentication canceled. Error: ${error.toString()}',
           )))),
     );
 
@@ -119,12 +117,10 @@ class WebOAuth extends CoreOAuth {
     final completer = Completer<Either<Failure, Token>>();
 
     jsRefreshToken(
-      allowInterop(
-          (value) => completer.complete(Right(Token(accessToken: value)))),
+      allowInterop((value) => completer.complete(Right(Token(accessToken: value)))),
       allowInterop((error) => completer.complete(Left(AadOauthFailure(
             errorType: ErrorType.accessDeniedOrAuthenticationCanceled,
-            message:
-                'Access denied or authentication canceled. Error: ${error.toString()}',
+            message: 'Access denied or authentication canceled. Error: ${error.toString()}',
           )))),
     );
 
@@ -145,4 +141,4 @@ class WebOAuth extends CoreOAuth {
   }
 }
 
-CoreOAuth getOAuthConfig(Config config) => WebOAuth(config);
+CoreOAuth getOAuthConfig(Config config, {AadOAuthPlatformType? platformType}) => WebOAuth(config);
