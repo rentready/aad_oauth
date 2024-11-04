@@ -3,6 +3,7 @@ library aad_oauth;
 
 import 'dart:async';
 
+import 'package:aad_oauth/helper/aad_oauth_platform_type.dart';
 import 'package:aad_oauth/helper/core_oauth.dart';
 import 'package:aad_oauth/model/failure.dart';
 import 'package:aad_oauth/model/token.dart';
@@ -14,7 +15,8 @@ import 'model/config.dart';
 class AadOAuth {
   final CoreOAuth _coreOAuth;
 
-  AadOAuth(Config config) : _coreOAuth = CoreOAuth.fromConfig(config);
+  AadOAuth(Config config, {AadOAuthPlatformType? platformType})
+      : _coreOAuth = CoreOAuth.fromConfig(config, platformType: platformType);
 
   /// Perform Azure AD login.
   ///
